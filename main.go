@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -18,11 +19,32 @@ const (
 )
 
 type Task struct {
-	id          int
-	description string
-	status      Status
-	created_at  time.Time
-	updated_at  time.Time
+	ID          int       `json:"id"`
+	Description string    `json:"description"`
+	Status      Status    `json:"status"`
+	Created_at  time.Time `json:"created_at"`
+	Updated_at  time.Time `json:"updated_at"`
+}
+
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return err == nil
+}
+
+func ensureFile(filename string) error {
+	if !fileExists(filename) {
+		file, err := os.Create(filename)
+
+		if err != nil {
+			return err
+		}
+
+		defer file.Close()
+
+		file.WriteString("[]")
+	}
+
+	return nil
 }
 
 func main() {
@@ -36,18 +58,73 @@ func main() {
 
 	fmt.Print("Enter choice (1-4): ")
 
-	input, _ := reader.ReadString('\n')
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Println("Error reading input:", err)
+		return
+	}
+
 	input = strings.TrimSpace(input)
 
-	choice, error := strconv.Atoi(input)
-	if error != nil {
+	choice, err := strconv.Atoi(input)
+	if err != nil {
 		fmt.Println("Invalid choice")
 		return
 	}
 
 	switch choice {
 	case 1:
-		fmt.Println("Add Task")
+		err := ensureFile("task.json")
+		if err != nil {
+			fmt.Println("Failed to ensure task.json")
+			return
+		}
+
+		reader = bufio.NewReader(os.Stdin)
+
+		fmt.Println("Add Todo: ")
+
+		description, _ := reader.ReadString('\n')
+		description = strings.TrimSpace(description)
+
+		data, err := os.ReadFile("task.json")
+		if err != nil {
+			fmt.Println("Error reading task.json", err)
+			return
+		}
+
+		var tasks []Task
+		err = json.Unmarshal(data, &tasks)
+		if err != nil {
+			fmt.Println("Error parsing task.json:", err)
+			return
+		}
+
+		newId := len(tasks) + 1
+
+		task := Task{
+			ID:          newId,
+			Description: description,
+			Status:      StatusTodo,
+			Created_at:  time.Now(),
+			Updated_at:  time.Now(),
+		}
+
+		tasks = append(tasks, task)
+
+		jsonData, err := json.MarshalIndent(tasks, "", "  ")
+		if err != nil {
+			fmt.Println("Error converting tasks to JSON:", err)
+			return
+		}
+
+		err = os.WriteFile("task.json", jsonData, 0644)
+		if err != nil {
+			fmt.Println("Error writing to task.json:", err)
+			return
+		}
+
+		fmt.Println("Task added successfully")
 	case 2:
 		fmt.Println("Update Task")
 	case 3:
