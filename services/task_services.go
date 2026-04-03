@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/Saim1123/task_tracker_cli/models"
@@ -75,4 +76,45 @@ func UpdateTask() {}
 
 func DeleteTask() {}
 
-func ListTasks() {}
+func ListTasks() {
+	err := utils.EnsureFile("task.json")
+	if err != nil {
+		fmt.Println("Failed to ensure task.json")
+		return
+	}
+
+	data, err := os.ReadFile("task.json")
+	if err != nil {
+		fmt.Println("Error reading task.json", err)
+		return
+	}
+
+	var tasks []models.Task
+	err = json.Unmarshal(data, &tasks)
+	if err != nil {
+		fmt.Println("Error parsing task.json:", err)
+		return
+	}
+
+	if len(tasks) == 0 {
+		fmt.Println("No tasks found.")
+		return
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+
+	fmt.Println("")
+	fmt.Fprintln(w, "ID\tDESCRIPTION\tSTATUS\tCREATED")
+	fmt.Fprintln(w, "--\t-----------\t------\t-------")
+
+	for _, task := range tasks {
+		fmt.Fprintf(w, "%d\t%s\t%s\t%s\n",
+			task.ID,
+			task.Description,
+			task.Status,
+			task.Created_at.Format("2006-01-02 15:04"),
+		)
+	}
+
+	w.Flush()
+}
