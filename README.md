@@ -2,6 +2,8 @@
 
 A simple command-line task management application built with Go. Track your tasks with descriptions, statuses, and timestamps.
 
+**Project URL**: https://github.com/Saim1123/task_tracker_cli
+
 ## Features
 
 - **Add Tasks**: Create new tasks with descriptions
